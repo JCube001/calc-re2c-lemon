@@ -1,0 +1,8 @@
+#ifndef CALC_CONFIG_H
+#define CALC_CONFIG_H
+
+#define CALC_VERSION "@calc_VERSION@"
+
+#define CALC_KEYSEQ_QUIT "@KEYSEQ_QUIT@"
+
+#endif /* CALC_CONFIG_H */
