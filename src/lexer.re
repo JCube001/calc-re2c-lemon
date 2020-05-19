@@ -1,33 +1,17 @@
 #include "lexer.h"
 
-#include "grammar.h"
-#include <stdarg.h>
 #include <stdlib.h>
 
 void
-error(struct calc_lexer *lexer,
-      const char        *fmt,
-      ...)
-{
-    va_list args;
-    fprintf(lexer->diag, "error: ");
-    va_start(args, fmt);
-    vfprintf(lexer->diag, fmt, args);
-    va_end(args);
-}
-
-void
 calc_lexer_init(struct calc_lexer *lexer,
-                const char        *input,
-                FILE              *diag)
+                const char *input)
 {
     lexer->cursor = input;
-    lexer->diag = diag;
 }
 
 int
 calc_lexer_next(struct calc_lexer *lexer,
-                union calc_token  *token)
+                union calc_token *token)
 {
     const char *lexeme;
 
@@ -39,21 +23,23 @@ loop:
         re2c:define:YYMARKER = lexer->marker;
         re2c:yyfill:enable = 0;
 
-        *      { error(lexer, "stray '%c' detected\n", yych); goto loop; }
-        "\x00" { return 0; }
+        ws     = [ \t\v\f\r\n]+;
+        number = [-+]?([0-9]+([.][0-9]*)?|[.][0-9]+)([Ee][-+]?[0-9]+)?;
 
-        [ \t\r\n]+ { goto loop; }
+        *   { return 0; }
+        ws  { goto loop; }
 
         "+" { return PLUS; }
         "-" { return MINUS; }
         "*" { return TIMES; }
         "/" { return DIVIDE; }
+        "^" { return EXPONENT; }
         "(" { return LPAREN; }
         ")" { return RPAREN; }
 
-        [0-9]+ ("." [0-9]+)?
+        number
         {
-            token->number = strtod(lexeme, NULL);
+            token->num = atof(lexeme);
             return NUMBER;
         }
     */

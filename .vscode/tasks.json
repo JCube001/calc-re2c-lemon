@@ -4,13 +4,25 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Configure",
-            "type": "shell",
+            "label": "Configure (Debug)",
+            "type": "process",
             "command": "cmake",
-            "args": ["-G", "Ninja", ".."],
             "options": {
                 "cwd": "${workspaceFolder}/build"
             },
+            "args": ["-DCMAKE_BUILD_TYPE=Debug", "-G", "Ninja", ".."],
+            "windows": {
+                "args": ["-G", "Visual Studio 15 2017 Win64", ".."]
+            }
+        },
+        {
+            "label": "Configure (Release)",
+            "type": "process",
+            "command": "cmake",
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "args": ["-DCMAKE_BUILD_TYPE=Release", "-G", "Ninja", ".."],
             "windows": {
                 "args": ["-G", "Visual Studio 15 2017 Win64", ".."]
             }
@@ -29,8 +41,21 @@
             }
         },
         {
-            "label": "Clean (Debug)",
+            "label": "Build (Release)",
             "type": "shell",
+            "command": "cmake",
+            "args": ["--build", ".", "--config", "Release"],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Clean (Debug)",
+            "type": "process",
             "command": "cmake",
             "args": ["--build", ".", "--config", "Debug", "--target", "clean"],
             "options": {
@@ -38,8 +63,17 @@
             },
         },
         {
+            "label": "Clean (Release)",
+            "type": "process",
+            "command": "cmake",
+            "args": ["--build", ".", "--config", "Release", "--target", "clean"],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            },
+        },
+        {
             "label": "Test (Debug)",
-            "type": "shell",
+            "type": "process",
             "command": "ctest",
             "args": ["-C", "Debug", "--verbose"],
             "options": {

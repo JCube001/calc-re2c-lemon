@@ -3,7 +3,7 @@
 
 union calc_token
 {
-    double number;
+    double num;
 };
 
 #endif /* CALC_TOKEN_H */

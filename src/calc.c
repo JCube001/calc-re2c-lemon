@@ -1,83 +1,106 @@
 #include "calc.h"
 
-#include "lexer.h"
 #include <assert.h>
 #include <math.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-struct parser_state
+static double
+eval(struct calc_expr *const expr)
 {
-    FILE *diag;
-    bool error;
-};
+    assert(expr != NULL);
 
-/* Include the auto-generated parser implementation */
-#define Parse_ENGINEALWAYSONSTACK
-#include "grammar.c"
+    double result;
+
+    switch (expr->type) {
+    case CALC_EXPR_ADD:
+        result = eval(expr->binop.lhs) + eval(expr->binop.rhs);
+        break;
+    case CALC_EXPR_SUB:
+        result = eval(expr->binop.lhs) - eval(expr->binop.rhs);
+        break;
+    case CALC_EXPR_MUL:
+        result = eval(expr->binop.lhs) * eval(expr->binop.rhs);
+        break;
+    case CALC_EXPR_DIV:
+        result = eval(expr->binop.lhs) / eval(expr->binop.rhs);
+        break;
+    case CALC_EXPR_POW:
+        result = pow(eval(expr->binop.lhs), eval(expr->binop.rhs));
+        break;
+    case CALC_EXPR_NEG:
+        result = -eval(expr->unop.rhs);
+        break;
+    case CALC_EXPR_NUM:
+        result = expr->num;
+        break;
+    default:
+        result = nan("");
+        break;
+    }
+
+    return result;
+}
 
 struct calc_expr *
-calc_expr_create_number(const double number)
+calc_expr_create_num(const double value)
 {
     struct calc_expr *expr;
 
     expr = malloc(sizeof(*expr));
-    if (expr) {
+    if (expr != NULL) {
         expr->type = CALC_EXPR_NUM;
-        expr->number = number;
+        expr->num = value;
     }
 
     return expr;
 }
 
 struct calc_expr *
-calc_expr_create_unary(const enum calc_expr_type  type,
-                       struct calc_expr          *rhs)
+calc_expr_create_unop(const enum calc_expr_type type,
+                      struct calc_expr *const rhs)
 {
     struct calc_expr *expr;
 
     expr = malloc(sizeof(*expr));
-    if (expr) {
+    if (expr != NULL) {
         expr->type = type;
-        expr->unary.rhs = rhs;
+        expr->unop.rhs = rhs;
     }
 
     return expr;
 }
 
-struct calc_expr*
-calc_expr_create_binary(const enum calc_expr_type  type,
-                        struct calc_expr          *lhs,
-                        struct calc_expr          *rhs)
+struct calc_expr *
+calc_expr_create_binop(const enum calc_expr_type type,
+                       struct calc_expr *const lhs,
+                       struct calc_expr *const rhs)
 {
     struct calc_expr *expr;
 
     expr = malloc(sizeof(*expr));
-    if (expr) {
+    if (expr != NULL) {
         expr->type = type;
-        expr->binary.lhs = lhs;
-        expr->binary.rhs = rhs;
+        expr->binop.lhs = lhs;
+        expr->binop.rhs = rhs;
     }
 
     return expr;
 }
 
 void
-calc_expr_destroy(struct calc_expr *expr)
+calc_expr_destroy(struct calc_expr *const expr)
 {
-    assert(expr != NULL);
-
     switch (expr->type) {
     case CALC_EXPR_ADD:
     case CALC_EXPR_SUB:
     case CALC_EXPR_MUL:
     case CALC_EXPR_DIV:
-        calc_expr_destroy(expr->binary.lhs);
-        calc_expr_destroy(expr->binary.rhs);
+    case CALC_EXPR_POW:
+        calc_expr_destroy(expr->binop.lhs);
+        calc_expr_destroy(expr->binop.rhs);
         break;
     case CALC_EXPR_NEG:
-        calc_expr_destroy(expr->unary.rhs);
+        calc_expr_destroy(expr->unop.rhs);
         break;
     default:
         break;
@@ -86,66 +109,17 @@ calc_expr_destroy(struct calc_expr *expr)
     free(expr);
 }
 
-double
-calc_expr_eval(const struct calc_expr *expr)
+int
+calc_eval(double *result,
+          const char *code)
 {
-    assert(expr != NULL);
+    struct calc_expr *expr;
 
-    switch (expr->type) {
-    case CALC_EXPR_ADD:
-        return calc_expr_eval(expr->binary.lhs) + calc_expr_eval(expr->binary.rhs);
-    case CALC_EXPR_SUB:
-        return calc_expr_eval(expr->binary.lhs) - calc_expr_eval(expr->binary.rhs);
-    case CALC_EXPR_MUL:
-        return calc_expr_eval(expr->binary.lhs) * calc_expr_eval(expr->binary.rhs);
-    case CALC_EXPR_DIV:
-        return calc_expr_eval(expr->binary.lhs) / calc_expr_eval(expr->binary.rhs);
-    case CALC_EXPR_NEG:
-        return -calc_expr_eval(expr->unary.rhs);
-    case CALC_EXPR_NUM:
-        return expr->number;
-    default:
-        return nan("");
+    expr = calc_parse(code);
+    if (expr == NULL) {
+        return -1;
     }
-}
 
-struct calc_expr *
-calc_parse(const char *input,
-           FILE       *diag)
-{
-    assert(input != NULL);
-    assert(diag != NULL);
-
-    yyParser parser;
-    struct calc_lexer lexer;
-    union calc_token token;
-    struct calc_expr *tree = NULL;
-    struct parser_state state;
-    int id;
-
-    calc_lexer_init(&lexer, input, diag);
-    ParseInit(&parser, &tree);
-    state.diag = diag;
-    state.error = false;
-
-    do {
-        id = calc_lexer_next(&lexer, &token);
-        Parse(&parser, id, &token, &state);
-        if (state.error) return NULL;
-    } while (id != 0);
-
-    ParseFinalize(&parser);
-
-    return tree;
-}
-
-double
-calc_eval(const char *input,
-          FILE       *diag)
-{
-    struct calc_expr *tree = calc_parse(input, diag);
-    if (NULL == tree) return nan("");
-    const double result = calc_expr_eval(tree);
-    calc_expr_destroy(tree);
-    return result;
+    *result = eval(expr);
+    return 0;
 }

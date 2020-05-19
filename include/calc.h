@@ -9,6 +9,7 @@ enum calc_expr_type
     CALC_EXPR_SUB,
     CALC_EXPR_MUL,
     CALC_EXPR_DIV,
+    CALC_EXPR_POW,
     CALC_EXPR_NEG,
     CALC_EXPR_NUM,
 };
@@ -17,14 +18,14 @@ struct calc_expr
 {
     enum calc_expr_type type;
     union {
-        double number;
+        double num;
         struct {
             struct calc_expr *rhs;
-        } unary;
+        } unop;
         struct {
             struct calc_expr *lhs;
             struct calc_expr *rhs;
-        } binary;
+        } binop;
     };
 };
 
@@ -33,30 +34,26 @@ extern "C" {
 #endif
 
 struct calc_expr *
-calc_expr_create_number(const double number);
+calc_expr_create_num(const double value);
 
 struct calc_expr *
-calc_expr_create_unary(const enum calc_expr_type  type,
-                       struct calc_expr          *rhs);
+calc_expr_create_unop(const enum calc_expr_type type,
+                      struct calc_expr *const rhs);
 
-struct calc_expr*
-calc_expr_create_binary(const enum calc_expr_type  type,
-                        struct calc_expr          *lhs,
-                        struct calc_expr          *rhs);
+struct calc_expr *
+calc_expr_create_binop(const enum calc_expr_type type,
+                       struct calc_expr *const lhs,
+                       struct calc_expr *const rhs);
 
 void
-calc_expr_destroy(struct calc_expr *expr);
+calc_expr_destroy(struct calc_expr *const expr);
 
-double
-calc_expr_eval(const struct calc_expr *expr);
+int
+calc_eval(double *result,
+          const char *code);
 
 struct calc_expr *
-calc_parse(const char *input,
-           FILE       *diag);
-
-double
-calc_eval(const char *input,
-          FILE       *diag);
+calc_parse(const char *code);
 
 #ifdef __cplusplus
 }

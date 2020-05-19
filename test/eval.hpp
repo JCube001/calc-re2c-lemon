@@ -1,8 +1,6 @@
 #ifndef EVAL_HPP
 #define EVAL_HPP
 
-#define EVAL(input, expected) \
-    calc_eval(input, stderr, &result); \
-    CHECK(result == Approx(expected));
+double eval(const char* code);
 
 #endif // EVAL_HPP
